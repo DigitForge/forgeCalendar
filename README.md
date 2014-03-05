@@ -1,4 +1,4 @@
 forgeCalendar
 =============
 
-A jquery calendar plugin used for day planning
+A jquery calendar plugin used for day planning.
