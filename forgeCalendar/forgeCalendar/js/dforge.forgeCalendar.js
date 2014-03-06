@@ -8,11 +8,23 @@
 // http://www.opensource.org/licenses/MIT
 //
 //////////////////////////////////////////////////////////
+// Requires:
+//      moment.js: http://momentjs.com/
+//////////////////////////////////////////////////////////
 // Calendar
 // A quick and easy calendar generator. You feed it items
 // and it spits out a calendar.
 //////////////////////////////////////////////////////////
-(function ($) {
+!function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery'], factory);
+        define(['moment'], factory);
+    } else {
+        factory(root.jQuery);
+    }
+}(this, function ($) {
+
+    'use strict';
 
     //Attatch the new method		   
     jQuery.fn.extend({
@@ -110,7 +122,7 @@
                 return !this.isSameDay(this.end());
             };
             FCEvent.prototype.overlaps = function (event) {
-                if(event==null || !this.isValid())
+                if (event == null || !this.isValid())
                     return false;
                 var fcEvent = this.cast(event);
                 if (!fcEvent.isValid())
@@ -192,7 +204,7 @@
                         $.each(items, function (i, item) {
                             var event = new FCEvent(item, _this.options.event);
                             if (event.isValid()) {
-                                if(results.dateEnd==null && event.isSameDay(results.dateStart))
+                                if (results.dateEnd == null && event.isSameDay(results.dateStart))
                                     results.events.push(event);
                                 else if (results.dateEnd != null) {
                                     if (
@@ -202,8 +214,7 @@
                                                 (results.dateStart <= event.end() && results.dateEnd >= event.end()) ||
                                                 (event.start() <= results.dateStart && event.end() >= results.dateEnd)
                                             )
-                                       )
-                                    {
+                                       ) {
                                         results.events.push(event);
                                     }
                                 }
@@ -229,7 +240,7 @@
                     var eventsRemaining = eventsToSearch.slice(0);
 
                     var conflicts = [];
-                    for (var i = 0; i < eventsToSearch.length;i++) {
+                    for (var i = 0; i < eventsToSearch.length; i++) {
                         // take off the first event
                         var directEvent = eventsRemaining.shift();
 
@@ -405,7 +416,7 @@
                 this.calcZoneLayout = function (events, defaultDate, padStart, padEnd) {
                     var _this = this;
 
-                    results = {
+                    var results = {
                         events: [],
                         groups: [],
                         zones: [],
@@ -438,7 +449,7 @@
                         // Group all the events by their conflicts
                         results.groups = this.groupByConflicts(events, true);
                         // Get the free time to pad out the entire day
-                        var paddedEvents = this.calcFreeTime(results.groups, defaultDate, true,padStart,padEnd);
+                        var paddedEvents = this.calcFreeTime(results.groups, defaultDate, true, padStart, padEnd);
                         // create a zone for each event (padded free time and conflict group)
                         $.each(paddedEvents.allEvents, function (i, event) {
                             var newZone = {
@@ -446,7 +457,7 @@
                                 isBusy: event.isBusy,
                                 group: event,
                                 events: event.conflicts,
-                                columns: _this.packColumns(event.isBusy?event.conflicts:null),
+                                columns: _this.packColumns(event.isBusy ? event.conflicts : null),
                             };
                             // For each column, go ahead and calculate the free time
                             $.each(newZone.columns, function (i, col) {
@@ -501,7 +512,7 @@
 
                     // Get the ending data
                     var lastMoment = results.events[results.events.length - 1].end();
-                    var maxBusyTime = padEnd != null ? moment(padEnd) : moment(defaultDate).hour(0).minute(0).second(0).millisecond(0).add({ days: 1 }).subtract("seconds",1);
+                    var maxBusyTime = padEnd != null ? moment(padEnd) : moment(defaultDate).hour(0).minute(0).second(0).millisecond(0).add({ days: 1 }).subtract("seconds", 1);
 
                     $.each(results.events, function (i, event) {
 
@@ -510,7 +521,7 @@
                                 // Add a free time slot
                                 var freeTimeItem = {};
                                 freeTimeItem[event.options.startPropertyName] = moment(lastBusyTime);
-                                freeTimeItem[event.options.endPropertyName] = moment(event.start()).subtract("seconds",1);
+                                freeTimeItem[event.options.endPropertyName] = moment(event.start()).subtract("seconds", 1);
                                 var freeTime = new FCEvent(freeTimeItem, event.options, false);
                                 results.freeTime.push(freeTime);
                                 results.allEvents.push(freeTime);
@@ -547,7 +558,7 @@
 
                 // Scroll the view to the given time (ignoring date)
                 this.scrollToTime = function (time) {
-                    if (time==null || this.$scroll == null)
+                    if (time == null || this.$scroll == null)
                         return;
                     var timeMoment = moment.isMoment(time) ? time : moment(time);
                     this.$scroll.scrollTop(time.hour() * 60 + time.minute());
@@ -569,7 +580,7 @@
 
                     var numDays = 0;
                     for (var date = moment(startDate) ; date < moment(endDate) ; date = date.add("days", 1)) {
-                        if ($.inArray(date.day(), this.options.display.daysOfWeek)>=0)
+                        if ($.inArray(date.day(), this.options.display.daysOfWeek) >= 0)
                             numDays += 1;
                     }
                     var dayWidth = (100.0 - _this.options.display.markerColumnWidth) / (1.0 * numDays);
@@ -595,10 +606,10 @@
                             dateCss += moment().year() == date.year() && moment().month() == date.month() && moment().date() == date.date() ? this.options.display.currentDayTitleCss : "";
                             if (this.isEnabled() && this.options.allowHeaderClick)
                                 dateCss += " " + this.options.display.defaultWaitOptions.enabledCss;
-                            else 
+                            else
                                 dateCss += " " + this.options.display.defaultWaitOptions.disabledCss;
 
-                            dayTitleContainer = $.expandTemplateFromObject(_this.options.calendarTemplates.title, {
+                            var dayTitleContainer = $.expandTemplateFromObject(_this.options.calendarTemplates.title, {
                                 CSS: dateCss,
                                 title: date.format(this.options.formatting.titleDateFormat),
                                 dataAttribName: this.options.dataAttribName,
@@ -612,7 +623,7 @@
                     }
 
                     // add the scrollable area
-                    var scrollContainer = _this.options.calendarTemplates.scroll; 
+                    var scrollContainer = _this.options.calendarTemplates.scroll;
                     this.$container.append($(scrollContainer));
                     this.$scroll = this.$container.children().last();
 
@@ -634,7 +645,6 @@
                             value: time.format(this.options.formatting.attribTimeFormat),
                         });
                         this.$underlay.append($(underrow));
-                        lastTime = time;
                     }
 
                     var overlayContainer = _this.options.calendarTemplates.overlay;
@@ -666,7 +676,7 @@
                     this.$daysContainer = this.$overlay.children().last();
 
                     for (var date = moment(startDate) ; date < moment(endDate) ; date = date.add("days", 1)) {
-                        if ($.inArray(date.day(), this.options.display.daysOfWeek)>=0) {
+                        if ($.inArray(date.day(), this.options.display.daysOfWeek) >= 0) {
                             var dayContainer = $.expandTemplateFromObject(this.options.calendarTemplates.day, {
                                 dataAttribName: this.options.dataAttribName,
                                 value: date.format(this.options.formatting.attribDateFormat),
@@ -698,7 +708,7 @@
                     this.$blackout.height(blackoutHeight);
 
                     if (buildBlackedOut)
-                        this.showWait(null,false);
+                        this.showWait(null, false);
 
                     // Finally animate the show of each event
                     this.makeEventsVisible($container.find(".event"));
@@ -716,7 +726,7 @@
                     $toolArea.append($(next));
                     this.$toolNext = $toolArea.children().last();
                     this.$toolNext.on("click", function (e) {
-                        if(_this.isEnabled())
+                        if (_this.isEnabled())
                             _this.next();
                     });
 
@@ -818,7 +828,7 @@
                                     eventStyle += "display:none;";
                                     if (event.start() < date) {
                                         css += (" " + _this.options.display.multiDayEnterCss);
-                                        if (event.duration() < maxMinutesShown) 
+                                        if (event.duration() < maxMinutesShown)
                                             offsetTop += date.diff(event.start(), "minutes")
                                         if (offsetTop != 0)
                                             eventStyle += $.stringFormat("margin-top:-{0}px;", offsetTop);
@@ -856,8 +866,8 @@
                         }
                         totalMinutesUsed += zoneMinutesUsed;
                     });
-                    
-                    if(makeVisible==null || makeVisible)
+
+                    if (makeVisible == null || makeVisible)
                         this.makeEventsVisible($dayContainer.find(".event"));
                 }
 
@@ -868,7 +878,7 @@
                 this.onHeaderClicked = function (e, $header) {
 
                     var date = moment($header.attr(this.options.dataAttribName));
-                    if (!this.isEnabled() || !this.options.allowHeaderClick || ! date.isValid())
+                    if (!this.isEnabled() || !this.options.allowHeaderClick || !date.isValid())
                         return { cancel: true };
 
                     var res = { cancel: false };
@@ -912,17 +922,17 @@
                 }
 
                 // get a selector for all the events displayed
-                this.getSelectorForAllEvents = function() {
+                this.getSelectorForAllEvents = function () {
                     return this.$container.find("." + this.options.display.eventBaseCss);
                 }
 
                 // get a selector for the given event object
-                this.getSelectorForEvent = function(event) {
+                this.getSelectorForEvent = function (event) {
                     var _this = this;
                     var $events = this.getSelectorForAllEvents();
                     var match = null;
-                    $.each($events,function(i,$event) {
-                        if($event.data(_this.options.eventDataKey) == event) {
+                    $.each($events, function (i, $event) {
+                        if ($event.data(_this.options.eventDataKey) == event) {
                             match = $event;
                             return false;
                         }
@@ -932,7 +942,7 @@
 
                 // delete an event
                 this.delete = function (event, refreshDisplay) {
-                    if (event == null || event.item == null || this.options.items==null)
+                    if (event == null || event.item == null || this.options.items == null)
                         return;
 
                     // find and remove the associated item
@@ -1037,7 +1047,7 @@
 
             }
 
-            if (typeof (options) == 'string') {                
+            if (typeof (options) == 'string') {
                 var selector = $(this[0]);
                 var controller = selector.data("forgeCalendar");
                 return controller.onAction.apply(controller, arguments);
@@ -1085,7 +1095,7 @@
                     display: {
                         startDate: null,
                         endDate: null,
-                        daysOfWeek: [0,1,2,3,4,5,6], // list days of week to show for the time period, 0=SUN, 1=MON,....6=SAT
+                        daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // list days of week to show for the time period, 0=SUN, 1=MON,....6=SAT
                         startHour: 0,
                         endHour: 23,
                         scrollToHour: -1, // -1 means current time, 0 means no scroll
@@ -1110,7 +1120,7 @@
                             disable: true,
                             disabledCss: "disabled",
                             enabledCss: "enabled"
-                    },
+                        },
                     },
                     // Templates
                     eventTemplates: {
@@ -1181,4 +1191,4 @@
             }
         }
     });
-})(jQuery);
+});
