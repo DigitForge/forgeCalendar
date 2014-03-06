@@ -74,6 +74,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\..\README.html">
+      <Link>README.html</Link>
+      <DependentUpon>README.md</DependentUpon>
+    </Content>
+    <Content Include="..\..\README.min.html">
+      <Link>README.min.html</Link>
+      <DependentUpon>README.html</DependentUpon>
+    </Content>
     <Content Include="img\calendar\calendar_load2.GIF" />
     <Content Include="css\dforge.forgeCalendar.css" />
     <Content Include="js\dforge.forgeCalendar.js" />
