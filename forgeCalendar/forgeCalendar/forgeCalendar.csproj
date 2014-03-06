@@ -57,6 +57,15 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\..\README.md">
+      <Link>README.md</Link>
+    </Content>
+    <Content Include="..\..\.gitattributes">
+      <Link>.gitattributes</Link>
+    </Content>
+    <Content Include="..\..\.gitignore">
+      <Link>.gitignore</Link>
+    </Content>
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -65,6 +74,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="img\calendar\calendar_load2.GIF" />
+    <Content Include="css\dforge.forgeCalendar.css" />
+    <Content Include="js\dforge.forgeCalendar.js" />
+    <Content Include="img\calendar\cal_next.png" />
+    <Content Include="img\calendar\cal_prev.png" />
+    <Content Include="img\calendar\cal_tools.png" />
     <Content Include="index.html" />
     <Content Include="Web.config" />
   </ItemGroup>
