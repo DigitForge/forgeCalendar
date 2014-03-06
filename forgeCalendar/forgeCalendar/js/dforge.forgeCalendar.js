@@ -32,7 +32,55 @@
         //Plugin 
         forgeCalendar: function (options) {
 
+            // Utilities
+            function FCUtils() { }
+            FCUtils.prototype.isNullOrEmpty = function (value) {
+                return (null == value || value == "" ||
+                    (typeof (value) == "string" && $.trim(value) == "") ||
+                    typeof (value) == "undefined");
+            };
+            FCUtils.prototype.expandTemplateFromObject = function (template, obj, fieldsToExpand) {
+                if (this.isNullOrEmpty(template) || obj == null)
+                    return template;
+
+                var expandedTemplate = template;
+
+                if (fieldsToExpand == null) {
+                    // all fields
+                    $.each(obj, function (popertyName, value) {
+                        var re = new RegExp("{" + popertyName + "}", "gi");
+                        expandedTemplate = expandedTemplate.replace(re, value == null ? "" : value);
+                    });
+                }
+                else if ($.isArray(fieldsToExpand)) {
+                    // an array of fields
+                    $.each(fieldsToExpand, function (i, value) {
+                        var re = new RegExp("{" + value + "}", "gi");
+                        expandedTemplate = expandedTemplate.replace(re, obj[value]);
+                    });
+                }
+                else if ($.type(fieldsToExpand) == "string") {
+                    // assume a single field
+                    var re = new RegExp("{" + fieldsToExpand + "}", "gi");
+                    expandedTemplate = expandedTemplate.replace(re, obj[fieldsToExpand]);
+                }
+                return expandedTemplate;
+            };
+            // replaces the format items with the string representations of corresponding objects paramater array
+            // ex: $.stringFormat('test {0}', '1')
+            // output: 'test 1'
+            FCUtils.prototype.stringFormat = function (str) {
+                for (var i = 1; i < arguments.length; i++) {
+                    var pattern = '\\{' + (i - 1) + '\\}';
+                    var reg = new RegExp(pattern, 'g');
+                    str = str.replace(reg, arguments[i] == null ? "" : arguments[i]);
+                }
+                return str;
+            };
+
+
             // Forge Calendar Event
+            // Object wrapper for user-supplied items (events)
             function FCEvent(item, options, isBusy) {
                 this.options = options;
                 this.item = item;
@@ -131,12 +179,14 @@
             };
 
             // Forge Calendar Controller
+            // Controller that manages interaction with the calendar UI
             function forgeCalendarController(containerId, options) {
                 this.containerId = containerId;
                 this.$container = $("#" + containerId);
                 this.options = options;
                 this.tempDisable = false;
                 this.lastWaitOptions = null;
+                this.utils = new FCUtils();
 
                 this.onAction = function (action) {
                     var args = Array.prototype.slice.call(arguments, 1);
@@ -590,11 +640,11 @@
                     this.$container.append($(titleContainer));
                     this.$titleContainer = this.$container.children().last();
 
-                    var blank = $.expandTemplateFromObject(_this.options.calendarTemplates.blankTitle, _this.options.display);
+                    var blank = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.blankTitle, _this.options.display);
                     this.$titleContainer.append($(blank));
                     this.$blank = this.$titleContainer.children().last();
 
-                    var tools = $.expandTemplateFromObject(_this.options.calendarTemplates.toolArea, _this.options.display);
+                    var tools = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.toolArea, _this.options.display);
                     this.$blank.append($(tools));
                     this.$toolArea = this.$blank.children().last();
                     this.onBuildToolArea(this.$toolArea);
@@ -609,7 +659,7 @@
                             else
                                 dateCss += " " + this.options.display.defaultWaitOptions.disabledCss;
 
-                            var dayTitleContainer = $.expandTemplateFromObject(_this.options.calendarTemplates.title, {
+                            var dayTitleContainer = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.title, {
                                 CSS: dateCss,
                                 title: date.format(this.options.formatting.titleDateFormat),
                                 dataAttribName: this.options.dataAttribName,
@@ -639,7 +689,7 @@
                         if (this.options.display.hilightCurrentHour && isNow)
                             rowClasses = this.options.display.currentHourCss;
 
-                        var underrow = $.expandTemplateFromObject(_this.options.calendarTemplates.underlayRow, {
+                        var underrow = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.underlayRow, {
                             CSS: rowClasses,
                             dataAttribName: this.options.dataAttribName,
                             value: time.format(this.options.formatting.attribTimeFormat),
@@ -652,7 +702,7 @@
                     this.$overlay = this.$scroll.children().last();
 
                     // Add the time scale
-                    var markerContainer = $.expandTemplateFromObject(_this.options.calendarTemplates.markerContainer, _this.options.display);
+                    var markerContainer = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.markerContainer, _this.options.display);
                     this.$overlay.append($(markerContainer));
                     var $markers = this.$overlay.children().last();
 
@@ -661,7 +711,7 @@
                         var isNow = moment().hour() == time.hour();
                         if (this.options.display.hilightCurrentHour && isNow)
                             classes = this.options.display.currentHourCss;
-                        var marker = $.expandTemplateFromObject(_this.options.calendarTemplates.marker, {
+                        var marker = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.marker, {
                             CSS: classes,
                             title: time.format(this.options.formatting.markerTimeFormat),
                             dataAttribName: this.options.dataAttribName,
@@ -677,7 +727,7 @@
 
                     for (var date = moment(startDate) ; date < moment(endDate) ; date = date.add("days", 1)) {
                         if ($.inArray(date.day(), this.options.display.daysOfWeek) >= 0) {
-                            var dayContainer = $.expandTemplateFromObject(this.options.calendarTemplates.day, {
+                            var dayContainer = this.utils.expandTemplateFromObject(this.options.calendarTemplates.day, {
                                 dataAttribName: this.options.dataAttribName,
                                 value: date.format(this.options.formatting.attribDateFormat),
                                 width: dayWidth,
@@ -722,7 +772,7 @@
                     if (res.cancel || !this.options.display.allowDefaultTools)
                         return;
 
-                    var next = $.expandTemplateFromObject(_this.options.calendarTemplates.nextButton, _this.options.display);
+                    var next = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.nextButton, _this.options.display);
                     $toolArea.append($(next));
                     this.$toolNext = $toolArea.children().last();
                     this.$toolNext.on("click", function (e) {
@@ -730,7 +780,7 @@
                             _this.next();
                     });
 
-                    var prev = $.expandTemplateFromObject(_this.options.calendarTemplates.prevButton, _this.options.display);
+                    var prev = this.utils.expandTemplateFromObject(_this.options.calendarTemplates.prevButton, _this.options.display);
                     $toolArea.append($(prev));
                     this.$toolPrev = $toolArea.children().last();
                     this.$toolPrev.on("click", function (e) {
@@ -752,7 +802,7 @@
 
                 this.getDayContainer = function (date) {
                     var fields = { dataAttribName: this.options.dataAttribName, value: date.format(this.options.formatting.attribDateFormat) };
-                    return this.$daysContainer.find($.stringFormat(".day[{0}='{1}']", this.options.dataAttribName, date.format(this.options.formatting.attribDateFormat)));
+                    return this.$daysContainer.find(this.utils.stringFormat(".day[{0}='{1}']", this.options.dataAttribName, date.format(this.options.formatting.attribDateFormat)));
                 }
 
                 // Refreshes the display of events for a given date
@@ -796,7 +846,7 @@
 
                         $.each(zone.columns, function (i, col) {
 
-                            var colContainer = $.expandTemplateFromObject(_this.options.calendarTemplates.column, { CSS: colClass, width: $.number(colWidthPercent, 2) });
+                            var colContainer = _this.utils.expandTemplateFromObject(_this.options.calendarTemplates.column, { CSS: colClass, width: colWidthPercent });
                             $dayContainer.append($(colContainer));
                             var $colContainer = $dayContainer.children().last();
 
@@ -811,7 +861,7 @@
                                 var offsetTop = minutesOffset;
                                 var eventStyle = "";
                                 if (!event.isBusy) {
-                                    var gap = $.expandTemplateFromObject(_this.options.calendarTemplates.freeTime, $.extend({}, item, { height: height, eventStyle: eventStyle }));
+                                    var gap = _this.utils.expandTemplateFromObject(_this.options.calendarTemplates.freeTime, $.extend({}, item, { height: height, eventStyle: eventStyle }));
                                     $colContainer.append(gap);
                                     var $gap = $colContainer.children().last();
                                     $gap.on("click", function (e) { _this.onFreeTimeClicked(e, $gap, event); });
@@ -831,7 +881,7 @@
                                         if (event.duration() < maxMinutesShown)
                                             offsetTop += date.diff(event.start(), "minutes")
                                         if (offsetTop != 0)
-                                            eventStyle += $.stringFormat("margin-top:-{0}px;", offsetTop);
+                                            eventStyle += _this.utils.stringFormat("margin-top:-{0}px;", offsetTop);
                                     }
                                     if (event.end() > dateEnd) {
                                         css += (" " + _this.options.display.multiDayLeaveCss);
@@ -840,13 +890,13 @@
                                         Title: "Event",
                                         Footer: null,
                                         CSS: css,
-                                        StartTime: item.AppointmentTime.format(_this.options.formatting.eventTimeFormat) + $.stringFormat("<span class='sup'>{0}</span>", item.AppointmentTime.format("a")),
+                                        StartTime: item.AppointmentTime.format(_this.options.formatting.eventTimeFormat) + _this.utils.stringFormat("<span class='sup'>{0}</span>", item.AppointmentTime.format("a")),
                                         StartTimeShort: item.AppointmentTime.format(_this.options.formatting.eventTimeFormat),
                                         height: height,
                                         innerHeight: height - 4,
                                         eventStyle: eventStyle,
                                     };
-                                    var eventExpanded = $.expandTemplateFromObject(eventTemplate, $.extend({}, item, fields));
+                                    var eventExpanded = _this.utils.expandTemplateFromObject(eventTemplate, $.extend({}, item, fields));
                                     $colContainer.append(eventExpanded);
                                     var $event = $colContainer.children().last();
                                     $event.data(_this.options.eventDataKey, event);
@@ -1103,7 +1153,6 @@
                         hilightDSTChange: true,
                         currentDayTitleCss: "now",
                         currentHourCss: "now",
-                        dstChangeCss: "dst",
                         multiDayCss: "multi", // event spans more than 1 calendar day
                         multiDayLeaveCss: "out", // event spans to the next day
                         multiDayEnterCss: "in", // event is coming over from previous day
