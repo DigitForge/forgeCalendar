@@ -3,6 +3,7 @@
 // https://github.com/DigitForge/forgeCalendar
 //
 // Copyright 2014, DigitForge Enterprises LLC
+// http://digitforge.com
 //
 // Licensed under the MIT licensw
 // http://www.opensource.org/licenses/MIT
@@ -32,6 +33,7 @@
         //Plugin 
         forgeCalendar: function (options) {
 
+            ///////////////////////
             // Utilities
             function FCUtils() { }
             FCUtils.prototype.isNullOrEmpty = function (value) {
@@ -78,7 +80,7 @@
                 return str;
             };
 
-
+            ///////////////////////
             // Forge Calendar Event
             // Object wrapper for user-supplied items (events)
             function FCEvent(item, options, isBusy) {
@@ -178,6 +180,7 @@
                 return (this.start() < fcEvent.end()) && (this.end() > fcEvent.start());
             };
 
+            ///////////////////////
             // Forge Calendar Controller
             // Controller that manages interaction with the calendar UI
             function forgeCalendarController(containerId, options) {
@@ -271,7 +274,7 @@
                             }
                         });
                     }
-
+                    results.events.sort(_this.sortByStartDate);
                     return results;
                 },
 
@@ -488,7 +491,8 @@
                         };
                         // For each column, go ahead and calculate the free time
                         $.each(newZone.columns, function (i, col) {
-                            var freeTime = _this.calcFreeTime(col.events, defaultDate, true, newZone.group.start(), newZone.group.end());
+                            var freeTime = _this.calcFreeTime(col.events, defaultDate, true, 
+                                 newZone.group.start().min(padStart), newZone.group.end().max(padEnd));
                             $.extend(col, freeTime);
                         });
                         results.zones.push(newZone);
@@ -511,7 +515,8 @@
                             };
                             // For each column, go ahead and calculate the free time
                             $.each(newZone.columns, function (i, col) {
-                                var freeTime = _this.calcFreeTime(col.events, defaultDate, true, newZone.group.start(), newZone.group.end());
+                                var freeTime = _this.calcFreeTime(col.events, defaultDate, true,
+                                    newZone.group.start().min(padStart), newZone.group.end().max(padEnd));
                                 $.extend(col, freeTime);
                             });
                             results.zones.push(newZone);
@@ -520,7 +525,8 @@
 
                     // For each zone , go ahead and calculate the free time
                     $.each(results.zones, function (i, zone) {
-                        var freeTime = _this.calcFreeTime(zone.events, defaultDate, true, zone.group.start(), zone.group.end());
+                        var freeTime = _this.calcFreeTime(zone.events, defaultDate, true,
+                            zone.group.start().min(padStart), zone.group.end().max(padEnd));
                         $.extend(zone, freeTime);
                     });
 
@@ -761,7 +767,7 @@
                         this.showWait(null, false);
 
                     // Finally animate the show of each event
-                    this.makeEventsVisible($container.find(".event"));
+                    this.makeEventsVisible(this.$container.find(".event"));
                 }
 
                 this.onBuildToolArea = function ($toolArea) {
@@ -831,9 +837,13 @@
                     // keep track of how many minutes are remaining so we can crop events that 
                     // span multiple days
                     var totalMinutesUsed = 0;
-                    var maxMinutesShown = 1439;
+                    var maxMinutesShown = minutesDisplayed;
 
                     $.each(layout.zones, function (z, zone) {
+
+                        var zoneContainer = _this.utils.expandTemplateFromObject(_this.options.calendarTemplates.zone, { CSS: null });
+                        $dayContainer.append($(zoneContainer));
+                        var $zoneContainer = $dayContainer.children().last();
 
                         var numCols = zone.columns.length;
                         // Make sure we round down slightly otherwise accumulated error could put us over the 100.0 cap
@@ -843,12 +853,14 @@
 
                         var eventTemplate = numCols == 1 ? _this.options.eventTemplates.oneColumn : numCols == 2 ? _this.options.eventTemplates.twoColumn : _this.options.eventTemplates.threeColumn;
                         var colClass = numCols == 1 ? "one" : numCols == 2 ? "two" : "three";
-
+                        
                         $.each(zone.columns, function (i, col) {
 
+                            var maxMinutesInColumn = maxMinutesShown - totalMinutesUsed;
+
                             var colContainer = _this.utils.expandTemplateFromObject(_this.options.calendarTemplates.column, { CSS: colClass, width: colWidthPercent });
-                            $dayContainer.append($(colContainer));
-                            var $colContainer = $dayContainer.children().last();
+                            $zoneContainer.append($(colContainer));
+                            var $colContainer = $zoneContainer.children().last();
 
                             $.each(col.allEvents, function (i, event) {
                                 var item = event.item;
@@ -857,7 +869,7 @@
                                     duration = event.end().diff(date, "minutes");
                                 duration = Math.min(duration, maxMinutesShown);
 
-                                var height = Math.min(duration, maxMinutesShown - totalMinutesUsed); // cap events that run off the current display
+                                var height = Math.min(duration, maxMinutesInColumn); // cap events that run off the current display
                                 var offsetTop = minutesOffset;
                                 var eventStyle = "";
                                 if (!event.isBusy) {
@@ -890,8 +902,8 @@
                                         Title: "Event",
                                         Footer: null,
                                         CSS: css,
-                                        StartTime: item.AppointmentTime.format(_this.options.formatting.eventTimeFormat) + _this.utils.stringFormat("<span class='sup'>{0}</span>", item.AppointmentTime.format("a")),
-                                        StartTimeShort: item.AppointmentTime.format(_this.options.formatting.eventTimeFormat),
+                                        StartTime: event.start().format(_this.options.formatting.eventTimeFormat) + _this.utils.stringFormat("<span class='sup'>{0}</span>", event.start().format("a")),
+                                        StartTimeShort: event.start().format(_this.options.formatting.eventTimeFormat),
                                         height: height,
                                         innerHeight: height - 4,
                                         eventStyle: eventStyle,
@@ -905,6 +917,8 @@
                                     if ($.isFunction(_this.options.callbacks.onEventCreated))
                                         _this.options.callbacks.onEventCreated(_this, $event, event);
                                 }
+
+                                maxMinutesInColumn -= height;
                             });
                         });
 
@@ -1104,7 +1118,7 @@
             }
             else { // init with options
 
-                //Defaults options are set
+                //Defaults options 
                 var defaults = {
                     items: null, // your own objects go here
                     enabled: true, // Disable/Enable user interaction
@@ -1165,8 +1179,8 @@
                         defaultMoveTimepart: "week",
                         defaultMoveAmount: 1,
                         defaultWaitOptions: {
-                            show: true,
-                            disable: true,
+                            show: false,
+                            disable: false,
                             disabledCss: "disabled",
                             enabledCss: "enabled"
                         },
@@ -1213,6 +1227,7 @@
                         daysContainer: "<div class='days'></div>",
                         day: "<div class='day {CSS}' style='width:{width}%;' {dataAttribName}='{value}'></div>",
                         freeTime: "<div class='gap' style='height:{height}px;{eventStyle}'></div>",
+                        zone: "<div class='zone clearfix {CSS}'></div>",
                         column: "<div class='column {CSS}' style='width:{width}%'></div>",
                         toolArea: "<div class='tools'></div>",
                         nextButton: "<div class='nextPage'></div>",
